@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit;
 
 public class SimpleProposalTest {
 
-    private int size = 3;
-    private PaxosService[] services = new PaxosService[size];
+    protected int size = 3;
+    protected PaxosService[] services;
 
     @Before
     public void init() {
@@ -27,10 +27,11 @@ public class SimpleProposalTest {
         System.out.println(Arrays.toString(members));
 
         PaxosServiceFactory factory = new PaxosServiceFactory(members);
+
+        services = new PaxosService[size];
         for (int i = 0; i < size; i++) {
             services[i] = factory.get(members[i]);
         }
-        System.out.println("##");
     }
 
     // @Test

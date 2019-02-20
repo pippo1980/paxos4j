@@ -9,7 +9,6 @@ import com.sirius.ds.paxos.msg.Proposal;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MemoryInstanceWAL implements InstanceWAL {
 
@@ -39,20 +38,22 @@ public class MemoryInstanceWAL implements InstanceWAL {
 
     @Override
     public Instance create(Proposal proposal) {
-        String key = proposal.getKey();
+//        String key = proposal.getKey();
+//
+//        // 存在相同key的instance, 判断该instance是否已经提交
+//        AtomicBoolean create = new AtomicBoolean(true);
+//        if (index.containsKey(key)) {
+//            instances.get(index.get(key)).read(_instance -> {
+//                create.set(_instance.getStatus() != InstanceStatus.PREPARE);
+//                return _instance;
+//            });
+//        }
+//
+//        return create.get()
+//               ? newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal)
+//               : updateInstance(proposal);
 
-        // 存在相同key的instance, 判断该instance是否已经提交
-        AtomicBoolean create = new AtomicBoolean(true);
-        if (index.containsKey(key)) {
-            instances.get(index.get(key)).read(_instance -> {
-                create.set(_instance.getStatus() != InstanceStatus.PREPARE);
-                return _instance;
-            });
-        }
-
-        return create.get()
-               ? newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal)
-               : updateInstance(proposal);
+        return newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal);
     }
 
     @Override

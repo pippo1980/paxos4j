@@ -97,7 +97,7 @@ public class DefaultAcceptor implements Acceptor {
             Proposal _proposal = _instance.getProposal();
 
             if (proposal.getBallot() != _proposal.getBallot()) {
-                LOGGER.warn(
+                LOGGER.debug(
                         "ignore accept rq:{}, because the remote proposal ballot:{} not equal local proposal:{}",
                         proposal.getBallot(),
                         _proposal.getBallot(),
