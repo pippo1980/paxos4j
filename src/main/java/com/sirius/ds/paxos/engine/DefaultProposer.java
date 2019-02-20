@@ -39,15 +39,16 @@ public class DefaultProposer implements Proposer {
         }
 
         instanceWAL.get(msg.getInstanceId()).write(_instance -> {
+
+            if (!msg.isPrepareOK()) {
+                LOGGER.debug("forbidden prepare msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
+                return _instance;
+            }
+
             _instance.getPreparePromised().add(msg.getPeerID());
 
             if (_instance.getStatus() != InstanceStatus.PREPARE) {
                 LOGGER.debug("ignore prepare rs:{}, because the instance:{} status is not prepare", msg, _instance);
-                return _instance;
-            }
-
-            if (!msg.isPrepareOK()) {
-                LOGGER.debug("forbidden prepare msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
                 return _instance;
             }
 
@@ -97,15 +98,15 @@ public class DefaultProposer implements Proposer {
         }
 
         instanceWAL.get(msg.getInstanceId()).write(_instance -> {
+            if (!msg.isAcceptOK()) {
+                LOGGER.debug("forbidden accept msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
+                return _instance;
+            }
+
             _instance.getAcceptPromised().add(msg.getPeerID());
 
             if (_instance.getStatus() != InstanceStatus.ACCEPT) {
                 LOGGER.debug("ignore accept rs:{}, because the instance:{} status is not accept", msg, _instance);
-                return _instance;
-            }
-
-            if (!msg.isAcceptOK()) {
-                LOGGER.debug("forbidden accept msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
                 return _instance;
             }
 

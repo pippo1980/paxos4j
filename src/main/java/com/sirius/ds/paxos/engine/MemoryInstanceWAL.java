@@ -9,6 +9,7 @@ import com.sirius.ds.paxos.msg.Proposal;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MemoryInstanceWAL implements InstanceWAL {
 
@@ -38,21 +39,20 @@ public class MemoryInstanceWAL implements InstanceWAL {
 
     @Override
     public Instance create(Proposal proposal) {
-        //        String key = proposal.getKey();
-        //
-        //        // 存在相同key的instance, 判断该instance是否已经提交
-        //        AtomicBoolean create = new AtomicBoolean(true);
-        //        if (index.containsKey(key)) {
-        //            instances.get(index.get(key)).read(_instance -> {
-        //                create.set(_instance.getStatus() != InstanceStatus.PREPARE);
-        //                return _instance;
-        //            });
-        //        }
-        //
-        //        return create.get()
-        //               ? newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal)
-        //               : updateInstance(proposal);
-        return newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal);
+        String key = proposal.getKey();
+
+        // 存在相同key的instance, 判断该instance是否已经提交
+        AtomicBoolean create = new AtomicBoolean(true);
+        if (index.containsKey(key)) {
+            instances.get(index.get(key)).read(_instance -> {
+                create.set(_instance.getStatus() != InstanceStatus.PREPARE);
+                return _instance;
+            });
+        }
+
+        return create.get()
+               ? newInstance(IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId), proposal)
+               : updateInstance(proposal);
     }
 
     @Override
@@ -61,11 +61,15 @@ public class MemoryInstanceWAL implements InstanceWAL {
     }
 
     private Instance newInstance(long instanceId, Proposal proposal) {
-        // long instanceId = IDGenerator.INSTANCE.nextId(proposal.getPeerID().nodeId);
-        Instance instance = new Instance(instanceId, proposal);
         proposal.setInstanceId(instanceId);
+
+        Instance instance = new Instance(instanceId, proposal);
         instances.put(instanceId, instance);
-        index.put(proposal.getKey(), instanceId);
+
+        if (proposal.getKey() != null) {
+            index.put(proposal.getKey(), instanceId);
+        }
+
         return instance;
     }
 
@@ -77,11 +81,11 @@ public class MemoryInstanceWAL implements InstanceWAL {
             }
 
             // 如果proposal和已有instance中的proposal中的value不一致, 那么增加ballot
-//            Proposal _proposal = _instance.getProposal();
-//            if (!proposal.getValue().equals(_proposal.getValue())) {
-//                _proposal.setBallot(_proposal.getBallot() + 1);
-//                _proposal.setValue(proposal.getValue());
-//            }
+            Proposal _proposal = _instance.getProposal();
+            if (!proposal.getValue().equals(_proposal.getValue())) {
+                _proposal.setBallot(_proposal.getBallot() + 1);
+                _proposal.setValue(proposal.getValue());
+            }
 
             return _instance;
         });

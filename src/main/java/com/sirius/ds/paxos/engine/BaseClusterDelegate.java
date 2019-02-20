@@ -210,8 +210,7 @@ public abstract class BaseClusterDelegate implements ClusterDelegate {
     }
 
     protected Function<Instance, Instance> ballotIncreaseFunc = _instance -> {
-        Proposal proposal = _instance.getProposal();
-        proposal.setBallot(_instance.getProposal().getBallot() + 1);
+        _instance.getProposal().increaseBallot();
         return _instance;
     };
 

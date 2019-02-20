@@ -23,6 +23,10 @@ public class Proposal {
         this.value = value;
     }
 
+    public void increaseBallot() {
+        this.ballot = this.ballot + 1;
+    }
+
     protected PeerID peerID;
     protected long instanceId;
     protected int ballot = 0;

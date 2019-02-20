@@ -25,7 +25,10 @@ public class DefaultAcceptor implements Acceptor {
 
     @Override
     public void onMessage(PrepareRQ msg) {
-        LOGGER.debug("receive prepare rq:{} from node:{}", msg, clusterDelegate.getCurrent().getID());
+        LOGGER.debug("receive prepare rq:{} from node:{} to node:{}",
+                msg,
+                clusterDelegate.getCurrent().getID(),
+                clusterDelegate.getCurrent().getID());
 
         InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();
         if (!instanceWAL.exist(msg.getInstanceId())) {
@@ -73,7 +76,11 @@ public class DefaultAcceptor implements Acceptor {
 
     @Override
     public void onMessage(AcceptRQ msg) {
-        LOGGER.debug("receive accept rq:{} from node:{}", msg, clusterDelegate.getCurrent().getID());
+        LOGGER.debug("receive accept rq:{} from node:{} to node:{}",
+                msg,
+                clusterDelegate.getCurrent().getID(),
+                clusterDelegate.getCurrent().getID());
+
         Proposal proposal = msg.getAcceptedProposal();
 
         InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();

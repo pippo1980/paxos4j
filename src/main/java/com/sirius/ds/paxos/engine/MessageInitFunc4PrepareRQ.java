@@ -3,7 +3,6 @@ package com.sirius.ds.paxos.engine;
 import com.sirius.ds.paxos.Instance;
 import com.sirius.ds.paxos.InstanceStatus;
 import com.sirius.ds.paxos.msg.PrepareRQ;
-import com.sirius.ds.paxos.msg.Proposal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +29,7 @@ public class MessageInitFunc4PrepareRQ implements Function<Instance, Instance> {
         switch (_instance.getStatus()) {
             case INIT:
                 _instance.setStatus(InstanceStatus.PREPARE);
-                Proposal proposal = _instance.getProposal();
-                proposal.setBallot(proposal.getBallot() + 1);
+                _instance.getProposal().increaseBallot();
                 break;
             case ACCEPT:
                 LOGGER.warn("cancel prepare rq, because instance:{} status is accept", _instance);
