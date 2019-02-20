@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 public class DefaultProposer implements Proposer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultProposer.class);
-    private static final long DEFAULT_TIMEOUT = 10;
 
     public DefaultProposer(ClusterDelegate clusterDelegate) {
         this.clusterDelegate = clusterDelegate;

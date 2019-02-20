@@ -2,6 +2,7 @@ package com.sirius.ds.paxos.engine;
 
 import com.google.common.base.MoreObjects;
 import com.sirius.ds.paxos.Acceptor;
+import com.sirius.ds.paxos.ClusterDelegate;
 import com.sirius.ds.paxos.Learner;
 import com.sirius.ds.paxos.PeerID;
 import com.sirius.ds.paxos.PeerNode;
@@ -11,11 +12,14 @@ import java.util.Objects;
 
 public class DefaultPeerNode implements PeerNode {
 
-    public DefaultPeerNode(PeerID peerID, Proposer proposer, Acceptor acceptor, Learner learner) {
+    public DefaultPeerNode(PeerID peerID) {
         this.peerID = peerID;
-        this.proposer = proposer;
-        this.acceptor = acceptor;
-        this.learner = learner;
+    }
+
+    public void setClusterDelegate(ClusterDelegate clusterDelegate) {
+        this.proposer = new DefaultProposer(clusterDelegate);
+        this.acceptor = new DefaultAcceptor(clusterDelegate);
+        this.learner = new DefaultLearner(clusterDelegate);
     }
 
     private PeerID peerID;

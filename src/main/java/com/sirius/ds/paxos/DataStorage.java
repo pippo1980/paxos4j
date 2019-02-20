@@ -6,8 +6,8 @@ public interface DataStorage {
 
     VersionedData get(String uuid);
 
-    void put(String uuid, VersionedData data);
+    VersionedData put(String uuid, VersionedData data);
 
-    void remove(String uuid);
+    VersionedData remove(String uuid);
 
 }

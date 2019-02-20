@@ -49,11 +49,11 @@ public class DefaultAcceptor implements Acceptor {
 
         instanceWAL.get(msg.getInstanceId()).write(_instance -> {
             boolean preparePromise = false;
-
             if (msg.getBallot() > _instance.getPreparedBallot()) {
                 // 如果消息中的ballot大于本地的ballot, 那么接受消息中的ballot
                 preparePromise = true;
                 _instance.setPreparedBallot(msg.getBallot());
+                LOGGER.debug("promise prepare instance:{} at node:{}", _instance, clusterDelegate.getCurrent().getID());
             }
 
             // 如果本地instance状态为init, 说明是接受了远程的prepare, 那么修改本地instance状态

@@ -6,12 +6,11 @@ import com.sirius.ds.paxos.msg.LearnRQ;
 import com.sirius.ds.paxos.msg.LearnRS;
 import com.sirius.ds.paxos.msg.PrepareRQ;
 import com.sirius.ds.paxos.msg.PrepareRS;
+import com.sirius.ds.paxos.msg.VersionedData;
 
 import java.util.concurrent.TimeUnit;
 
-public interface ClusterDelegate {
-
-    boolean propose(String key, byte[] value, long timeout, TimeUnit timeUnit);
+public interface ClusterDelegate extends PaxosService {
 
     InstanceWAL getInstanceWAL();
 
@@ -36,4 +35,14 @@ public interface ClusterDelegate {
     PeerNode getCurrent();
 
     int getQuorum();
+
+    @Override
+    default VersionedData get(String key) {
+        return getStorage().get(key);
+    }
+
+    @Override
+    default VersionedData remove(String key) {
+        return getStorage().remove(key);
+    }
 }

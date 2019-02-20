@@ -1,13 +1,5 @@
 package com.sirius.ds.paxos;
 
-import com.sirius.ds.paxos.engine.BaseClusterDelegate;
-import com.sirius.ds.paxos.engine.DefaultAcceptor;
-import com.sirius.ds.paxos.engine.DefaultLearner;
-import com.sirius.ds.paxos.engine.DefaultPeerNode;
-import com.sirius.ds.paxos.engine.DefaultProposer;
-import com.sirius.ds.paxos.engine.MemoryDataStorage;
-import com.sirius.ds.paxos.engine.MemoryInstanceWAL;
-import com.sirius.ds.paxos.engine.MockClusterDelegate;
 import com.sirius.ds.paxos.msg.VersionedData;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,7 +7,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -25,40 +16,29 @@ import java.util.concurrent.TimeUnit;
 public class SimpleProposalTest {
 
     private int size = 3;
-    private BaseClusterDelegate[] delegates;
+    private PaxosService[] services = new PaxosService[size];
 
     @Before
     public void init() {
-        delegates = new BaseClusterDelegate[size];
-        PeerNode[] nodes = new PeerNode[size];
-
+        PeerID[] members = new PeerID[size];
         for (int i = 0; i < size; i++) {
-            delegates[i] = create();
-            nodes[i] = new DefaultPeerNode(new PeerID(i + 1, null),
-                    new DefaultProposer(delegates[i]),
-                    new DefaultAcceptor(delegates[i]),
-                    new DefaultLearner(delegates[i]));
+            members[i] = new PeerID(i + 1, "127.0.0.1", 8080 + i);
         }
+        System.out.println(Arrays.toString(members));
 
+        PaxosServiceFactory factory = new PaxosServiceFactory(members);
         for (int i = 0; i < size; i++) {
-            delegates[i].init(nodes[i], new HashSet<>(Arrays.asList(nodes)));
+            services[i] = factory.get(members[i]);
         }
-    }
-
-    private BaseClusterDelegate create() {
-        InstanceWAL instanceWAL = new MemoryInstanceWAL();
-        DataStorage storage = new MemoryDataStorage();
-
-        BaseClusterDelegate cluster = new MockClusterDelegate(instanceWAL, storage);
-        return cluster;
+        System.out.println("##");
     }
 
     // @Test
     public void proposeOne() {
         String key = UUID.randomUUID().toString();
-        boolean success = delegates[0].propose(key, "pippo".getBytes(), 1, TimeUnit.SECONDS);
+        boolean success = services[0].propose(key, "pippo".getBytes(), 1, TimeUnit.SECONDS);
         Assert.assertTrue(success);
-        Assert.assertEquals("pippo", new String(delegates[0].getStorage().get(key).payload));
+        Assert.assertEquals("pippo", new String(services[0].get(key).payload));
     }
 
     @Test
@@ -68,7 +48,7 @@ public class SimpleProposalTest {
         List<Callable<Boolean>> tasks = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             final int _i = i;
-            tasks.add(() -> delegates[_i].propose(key, ("pippo" + _i).getBytes(), 10, TimeUnit.SECONDS));
+            tasks.add(() -> services[_i].propose(key, ("pippo" + _i).getBytes(), 1, TimeUnit.SECONDS));
         }
 
         Executors.newFixedThreadPool(size).invokeAll(tasks).forEach(f -> {
@@ -94,9 +74,11 @@ public class SimpleProposalTest {
         List<Callable<Boolean>> tasks = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             final int _i = i;
+
+            // currency put value with same key on different node
             tasks.add(() -> {
                 for (int j = 0; j < 10; j++) {
-                    delegates[_i].propose(key, ("pippo" + j).getBytes(), 1, TimeUnit.SECONDS);
+                    services[_i].propose(key, ("pippo" + j).getBytes(), 1, TimeUnit.SECONDS);
                 }
 
                 return true;
@@ -114,16 +96,17 @@ public class SimpleProposalTest {
 
             Thread.sleep(1000 * 5);
 
+            // check if data is consistency on all node
             assertConsistency(key);
         }
     }
 
     private void assertConsistency(String key) {
-        for (BaseClusterDelegate delegate : delegates) {
-            VersionedData target = delegate.getStorage().get(key);
+        for (PaxosService service : services) {
+            VersionedData target = service.get(key);
             String payload = new String(target.payload);
             System.out.println(target.instanceId + "#" + payload);
-            Arrays.stream(delegates).forEach(d -> Assert.assertEquals(target, d.getStorage().get(key)));
+            Arrays.stream(services).forEach(s -> Assert.assertEquals(target, s.get(key)));
         }
     }
 }

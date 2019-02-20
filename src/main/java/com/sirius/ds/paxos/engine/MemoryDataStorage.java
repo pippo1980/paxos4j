@@ -22,30 +22,28 @@ public class MemoryDataStorage implements DataStorage {
     }
 
     @Override
-    public void put(String uuid, VersionedData data) {
-        String key = uuid;
+    public VersionedData put(String uuid, VersionedData data) {
 
         lock.lock();
         try {
-            VersionedData exists = _storage.get(key);
+            VersionedData exists = _storage.get(uuid);
             if (exists == null) {
-                _storage.put(key, data);
-                return;
+                return _storage.put(uuid, data);
             }
 
             if (data.instanceId < exists.instanceId) {
                 LOGGER.warn("ignore data:{} put, because exist newer data:{}", data, exists);
-                return;
+                return data;
             }
 
-            _storage.put(key, data);
+            return _storage.put(uuid, data);
         } finally {
             lock.unlock();
         }
     }
 
     @Override
-    public void remove(String uuid) {
-        _storage.remove(uuid);
+    public VersionedData remove(String uuid) {
+        return _storage.remove(uuid);
     }
 }
