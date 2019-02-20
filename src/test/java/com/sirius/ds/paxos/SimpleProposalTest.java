@@ -61,7 +61,7 @@ public class SimpleProposalTest {
 
         });
 
-        Thread.sleep(1000 * 5);
+        Thread.sleep(1000);
 
         assertConsistency(key);
 
@@ -94,7 +94,7 @@ public class SimpleProposalTest {
 
             });
 
-            Thread.sleep(1000 * 5);
+            Thread.sleep(1000);
 
             // check if data is consistency on all node
             assertConsistency(key);
