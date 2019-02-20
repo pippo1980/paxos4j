@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.sirius.ds</groupId>
-    <artifactId>paxos</artifactId>
+    <artifactId>paxos4j</artifactId>
     <version>20140922</version>
 
     <properties>
