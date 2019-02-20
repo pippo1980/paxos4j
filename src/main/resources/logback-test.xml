@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- For assistance related to logback-translator or configuration -->
+<!-- files in general, please contact the logback user mailing list -->
+<!-- at http://www.qos.ch/mailman/listinfo/logback-user -->
+<!-- -->
+<!-- For professional support please see -->
+<!-- http://www.qos.ch/shop/products/professionalSupport -->
+<!-- -->
+<configuration scan="true" scanPeriod="30 seconds">
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ssS} %5p [%c{5}#%M]:%L-%m%n"/>
+    <property name="LOG_CALLER_PATTERN" value="%d{yyyy-MM-dd HH:mm:ssS} %5p [%c{5}#%M]:%L-%m%n%caller{1}"/>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--<pattern>${LOG_CALLER_PATTERN}</pattern>-->
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="stdout"/>
+    </root>
+
+    <logger name="com.sirius" level="debug"/>
+
+    <!--apm logger-->
+    <!--<logger name="groovy.filters" level="info" additivity="false">-->
+    <!--<appender-ref ref="monitor"/>-->
+    <!--</logger>-->
+
+    <!-- <logger service="org.springframework" level="debug" /> -->
+    <!--<logger service="org.eclipse.jetty" level="debug"/>-->
+</configuration>
+
+
+
+
+
+
