@@ -8,6 +8,11 @@ paxos implement with java
 * InstanceWAL
 * DataStorage
 
+## use snowflake distribute id algorithm to generate instanceId
+
+
+
+
 ## simulation currency propose with multi thread
 
 ```java

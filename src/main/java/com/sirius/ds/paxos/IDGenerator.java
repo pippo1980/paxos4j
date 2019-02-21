@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class IDGenerator {
 
     // 50w年, 32节点, 每个workID每秒100w id
-    public static IDGenerator INSTANCE = new IDGenerator(38, 20, 5);
+    public static IDGenerator INSTANCE = new IDGenerator(32, 21, 10);
 
     /**
      * 起始的时间戳
@@ -134,7 +134,7 @@ public class IDGenerator {
 
             // 进行一次乐观校验, 避免时间重调的情况
             if (System.currentTimeMillis() < slot_time) {
-                long refusedSeconds = System.currentTimeMillis() - slot_second;
+                long refusedSeconds = System.currentTimeMillis() - slot_time;
                 throw new IllegalArgumentException(String.format("Clock moved backwards. Refusing for %d seconds",
                         refusedSeconds));
             }
@@ -154,9 +154,12 @@ public class IDGenerator {
     }
 
     public static void main(String[] args) {
-        for (int i = 0; i < 10000; i++) {
+        System.out.println(INSTANCE.generator.maxDeltaSeconds);
+        System.out.println(INSTANCE.generator.maxSequence);
+        System.out.println(INSTANCE.generator.maxWorkerId);
 
-            System.out.println(INSTANCE.nextId(16));
-        }
+        System.out.println(System.currentTimeMillis() % 1000);
+        System.out.println(System.currentTimeMillis() / 1000);
+
     }
 }
