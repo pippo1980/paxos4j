@@ -15,8 +15,8 @@ to avoid central node when currency propose value on different worker node, use 
 
 ## optimizer the proposal commit to the real storage
 1. use versioned data storage to store the real proposal value
-2. use the instanceId for the data version, which means the proposal with the same key will be learn by the instance id sequence
-3. if the proposal is learned, but the proposal instance id less then committed value's instance id with same key, commit would be fail.
+2. use the instanceId for the data version, means that the learned proposal with the same key will be commit by their instanceId order.
+3. if the proposal is learned, but the proposal instanceId less then committed value's instanceId with same key, commit would be fail.
 
 ## simulation currency propose with multi thread
 ```java
