@@ -10,7 +10,7 @@ paxos implement with java
 
 ## use snowflake distribute id algorithm to generate instanceId
 to avoid central node when currency propose value on different worker node, use snowflake algorithm to generate instanceId on worker node each other.
-![](https://github.com/pippo1980/paxos4j/blob/master/doc/instance_id_generator.png)
+![](https://github.com/pippo1980/paxos4j/blob/master/doc/snowflake.png)
 
 
 ## optimizer the proposal currency commit to the real storage
