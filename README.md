@@ -13,7 +13,7 @@ to avoid central node when currency propose value on different worker node, use 
 ![](https://github.com/pippo1980/paxos4j/blob/master/doc/instance_id_generator.png)
 
 
-## optimizer the proposal commit to the real storage
+## optimizer the proposal currency commit to the real storage
 1. use versioned data storage to store the real proposal value
 2. use the instanceId for the data version, means that the learned proposal with the same key will be commit by their instanceId order.
 3. if the proposal is learned, but the proposal instanceId less then committed value's instanceId with same key, commit would be fail.
