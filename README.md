@@ -10,7 +10,7 @@ paxos implement with java
 
 ## use snowflake distribute id algorithm to generate instanceId
 
-
+![](https://github.com/pippo1980/paxos4j/blob/master/doc/instance_id_generator.png)
 
 
 ## simulation currency propose with multi thread
@@ -81,3 +81,14 @@ public class SimpleProposalTest {
 
 
 ```
+
+## REFERENCES
+* L. Lamport, “Specifying concurrent program modules,” Trans. on Programming Languages and Systems, vol. 5, no. 2, pp. 190–222, Apr. 1983.
+* N. A. Lynch and F. W. Vaandrager, “Forward and backward simulations, ii: Timing-based systems,” Inf. Comput., vol. 128, no. 1, pp. 1–25, 1996
+* Lamport, Leslie. "The part-time parliament." ACM Transactions on Computer Systems (TOCS) 16.2 (1998): 133-169.
+* Lamport, Leslie. "Paxos made simple." ACM Sigact News 32.4 (2001): 18-25.
+* Primi, Marco. Paxos made code. Diss. University of Lugano, 2009.
+* Chandra, Tushar D., Robert Griesemer, and Joshua Redstone. "Paxos made live: an engineering perspective." Proceedings of the twenty-sixth annual ACM symposium on Principles of distributed computing. ACM, 2007.
+* [微信自研生产级paxos类库PhxPaxos实现原理介绍](http://mp.weixin.qq.com/s?__biz=MzI4NDMyNTU2Mw==&mid=2247483695&idx=1&sn=91ea422913fc62579e020e941d1d059e#rd)
+* [Paxos理论介绍(1): 朴素Paxos算法理论推导与证明](https://zhuanlan.zhihu.com/p/21438357?refer=lynncui)
+* [Paxos理论介绍(2): Multi-Paxos与Leader](https://zhuanlan.zhihu.com/p/21466932?refer=lynncui)
