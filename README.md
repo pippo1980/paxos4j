@@ -9,12 +9,16 @@ paxos implement with java
 * DataStorage
 
 ## use snowflake distribute id algorithm to generate instanceId
-
+to avoid central node when currency propose value on different worker node, use snowflake algorithm to generate instance on each worker node.
 ![](https://github.com/pippo1980/paxos4j/blob/master/doc/instance_id_generator.png)
 
 
-## simulation currency propose with multi thread
+## optimizer the proposal commit to the real storage
+1. use versioned data storage to store the real proposal value
+2. use the instanceId for the data version, which means the proposal with the same key will be learn by the instance id sequence
+3. if the proposal is learned, but the proposal instance id less then committed value's instance id with same key, commit would be fail.
 
+## simulation currency propose with multi thread
 ```java
 
 public class SimpleProposalTest {
