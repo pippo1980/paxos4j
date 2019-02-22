@@ -1,15 +1,13 @@
 package com.sirius.ds.paxos.engine;
 
 import com.sirius.ds.paxos.Acceptor;
-import com.sirius.ds.paxos.ClusterDelegate;
-import com.sirius.ds.paxos.Instance;
-import com.sirius.ds.paxos.InstanceStatus;
 import com.sirius.ds.paxos.InstanceWAL;
+import com.sirius.ds.paxos.PaxosCluster;
+import com.sirius.ds.paxos.PeerID;
 import com.sirius.ds.paxos.msg.AcceptRQ;
-import com.sirius.ds.paxos.msg.AcceptRS;
 import com.sirius.ds.paxos.msg.PrepareRQ;
-import com.sirius.ds.paxos.msg.PrepareRS;
-import com.sirius.ds.paxos.msg.Proposal;
+import com.sirius.ds.paxos.stat.Instance;
+import com.sirius.ds.paxos.stat.InstanceStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,112 +15,59 @@ public class DefaultAcceptor implements Acceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAcceptor.class);
 
-    public DefaultAcceptor(ClusterDelegate clusterDelegate) {
-        this.clusterDelegate = clusterDelegate;
+    public DefaultAcceptor(PaxosCluster cluster) {
+        this.cluster = cluster;
     }
 
-    private ClusterDelegate clusterDelegate;
+    private PaxosCluster cluster;
 
     @Override
     public void onMessage(PrepareRQ msg) {
-        LOGGER.debug("receive prepare rq:{} from node:{} to node:{}",
-                msg,
-                clusterDelegate.getCurrent().getID(),
-                clusterDelegate.getCurrent().getID());
+        PeerID currentId = cluster.getCurrent().getID();
 
-        InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();
-        if (!instanceWAL.exist(msg.getInstanceId())) {
+        LOGGER.debug("receive prepare rq from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
+
+        InstanceWAL instanceWAL = cluster.getInstanceWAL();
+        Instance instance = instanceWAL.get(msg.getInstanceId());
+        if (instance == null) {
             synchronized (this) {
-                if (!instanceWAL.exist(msg.getInstanceId())) {
-                    Proposal proposal = new Proposal(msg.getPeerID(), msg.getInstanceId(), msg.getBallot(), null, null);
-                    Instance instance = instanceWAL.create(msg.getInstanceId(), proposal);
-                    LOGGER.debug("persist new instance:{} at node:{}", instance, clusterDelegate.getCurrent().getID());
+                if (!instanceWAL.exists(msg.getInstanceId())) {
+                    instance = instanceWAL.create(msg.getInstanceId(), null);
+                    instance.setStatus(InstanceStatus.PREPARE);
+                    LOGGER.debug("persist new instance at node:{}, the instance is:{}", currentId, instance);
+                } else {
+                    instance = instanceWAL.get(msg.getInstanceId());
                 }
             }
         }
 
-        final PrepareRS prepareRS = new PrepareRS(clusterDelegate.getCurrent().getID(),
-                msg.getInstanceId(),
-                -1,
-                null,
-                false);
-
-        instanceWAL.get(msg.getInstanceId()).write(_instance -> {
-            boolean preparePromise = false;
-            if (msg.getBallot() > _instance.getPreparedBallot()) {
-                // 如果消息中的ballot大于本地的ballot, 那么接受消息中的ballot
-                preparePromise = true;
-                _instance.setPreparedBallot(msg.getBallot());
-                LOGGER.debug("promise prepare instance:{} at node:{}", _instance, clusterDelegate.getCurrent().getID());
-            }
-
-            // 如果本地instance状态为init, 说明是接受了远程的prepare, 那么修改本地instance状态
-            if (preparePromise && _instance.getStatus() == InstanceStatus.INIT) {
-                _instance.setStatus(InstanceStatus.PREPARE);
-            }
-
-            // 如果接受了msg中的ballot prepare, 那么返回之前曾经接受的preparedBallot和proposal
-            // 否则返回当前proposal的ballot和空值
-            prepareRS.setPreparedBallot(preparePromise
-                                        ? _instance.getPreparedBallot()
-                                        : _instance.getProposal().getBallot());
-            prepareRS.setPreparedProposal(preparePromise ? _instance.getProposal() : null);
-            prepareRS.setPrepareOK(preparePromise);
-            return _instance;
-        });
-
-        clusterDelegate.reply(msg.getPeerID(), prepareRS);
+        cluster.send(msg.getPeerID(), instance.onPrepareRQ(currentId, msg));
+        //        cluster.broadcast(instance.onPrepareRQ(currentId, msg));
     }
 
     @Override
     public void onMessage(AcceptRQ msg) {
-        LOGGER.debug("receive accept rq:{} from node:{} to node:{}",
-                msg,
-                clusterDelegate.getCurrent().getID(),
-                clusterDelegate.getCurrent().getID());
+        PeerID currentId = cluster.getCurrent().getID();
 
-        Proposal proposal = msg.getAcceptedProposal();
+        LOGGER.debug("receive accept rq from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
 
-        InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();
-        if (!instanceWAL.exist(proposal.getInstanceId())) {
-            AcceptRS acceptRS = new AcceptRS(clusterDelegate.getCurrent().getID(),
-                    proposal.getInstanceId(),
-                    false);
-            clusterDelegate.reply(msg.getPeerID(), acceptRS);
+        InstanceWAL instanceWAL = cluster.getInstanceWAL();
+        Instance instance = instanceWAL.get(msg.getInstanceId());
+
+        if (instance == null) {
+            LOGGER.warn("ignore accept rq from node:{} to node:{}, because can not find the instance:{}",
+                    msg.getPeerID(),
+                    currentId,
+                    instance);
             return;
         }
 
-        final AcceptRS acceptRS = new AcceptRS(clusterDelegate.getCurrent().getID(), proposal.getInstanceId(), false);
-        instanceWAL.get(proposal.getInstanceId()).write(_instance -> {
-            Proposal _proposal = _instance.getProposal();
-
-            if (proposal.getBallot() != _proposal.getBallot()) {
-                LOGGER.debug(
-                        "ignore accept rq:{}, because the remote proposal ballot:{} not equal local proposal:{}",
-                        proposal.getBallot(),
-                        _proposal.getBallot(),
-                        msg);
-                return _instance;
-            }
-
-            acceptRS.setAcceptOK(true);
-
-            // 如果本地instance状态为prepare, 说明是接受了远程的accept请求, 那么修改本地instance状态
-            if (_instance.getStatus() == InstanceStatus.PREPARE) {
-                _instance.setStatus(InstanceStatus.ACCEPT);
-            }
-
-            _proposal.setBallot(proposal.getBallot());
-            _proposal.setKey(proposal.getKey());
-            _proposal.setValue(proposal.getValue());
-            LOGGER.debug("accept proposal:{} at node:{}",
-                    _proposal,
-                    clusterDelegate.getCurrent().getID());
-
-            return _instance;
-        });
-
-        clusterDelegate.reply(msg.getPeerID(), acceptRS);
+//        if (instance.getAccepted().contains(msg.getPeerID())) {
+//            cluster.send(msg.getPeerID(), new AcceptRS(currentId, instance.getInstanceId(), true));
+//        } else {
+        System.out.println("#@$@#$");
+        cluster.broadcast(instance.onAcceptRQ(currentId, msg));
+//        }
     }
 
 }

@@ -32,14 +32,17 @@ public class SimpleProposalTest {
         for (int i = 0; i < size; i++) {
             services[i] = factory.get(members[i]);
         }
+
+        System.out.println("####");
     }
 
-    // @Test
+    @Test
     public void proposeOne() {
         String key = UUID.randomUUID().toString();
-        boolean success = services[0].propose(key, "pippo".getBytes(), 1, TimeUnit.SECONDS);
+        boolean success = services[0].propose(key, "pippo".getBytes(), 10, TimeUnit.SECONDS);
         Assert.assertTrue(success);
-        Assert.assertEquals("pippo", new String(services[0].get(key).payload));
+
+        Assert.assertEquals("pippo", new String(services[0].get(key).getPayload()));
     }
 
     @Test
@@ -49,10 +52,15 @@ public class SimpleProposalTest {
         List<Callable<Boolean>> tasks = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             final int _i = i;
-            tasks.add(() -> services[_i].propose(key, ("pippo" + _i).getBytes(), 1, TimeUnit.SECONDS));
+            tasks.add(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    return services[_i].propose(key, ("pippo" + _i).getBytes(), 10, TimeUnit.SECONDS);
+                }
+            });
         }
 
-        Executors.newFixedThreadPool(size).invokeAll(tasks).forEach(f -> {
+        Executors.newFixedThreadPool(size * 4).invokeAll(tasks).forEach(f -> {
 
             try {
                 Assert.assertTrue(f.get());
@@ -65,7 +73,6 @@ public class SimpleProposalTest {
         Thread.sleep(1000);
 
         assertConsistency(key);
-
     }
 
     @Test
@@ -105,9 +112,10 @@ public class SimpleProposalTest {
     private void assertConsistency(String key) {
         for (PaxosService service : services) {
             VersionedData target = service.get(key);
-            String payload = new String(target.payload);
-            System.out.println(target.instanceId + "#" + payload);
-            Arrays.stream(services).forEach(s -> Assert.assertEquals(target, s.get(key)));
+            Arrays.stream(services).forEach(s -> {
+                System.out.println(service.getCurrent().getID() + "####" + s.getCurrent().getID());
+                Assert.assertEquals(target, s.get(key));
+            });
         }
     }
 }

@@ -1,19 +1,16 @@
 package com.sirius.ds.paxos;
 
-import com.sirius.ds.paxos.msg.Proposal;
+import com.sirius.ds.paxos.msg.VersionedData;
+import com.sirius.ds.paxos.stat.Instance;
 
 /**
  * instance work ahead log
  */
 public interface InstanceWAL {
 
-    Proposal getPeerProposal(long instanceId, PeerID peerID);
-
-    boolean exist(long instanceId);
+    boolean exists(long instanceId);
 
     Instance get(long instanceId);
 
-    Instance create(Proposal proposal);
-
-    Instance create(long instanceId, Proposal proposal);
+    Instance create(long instanceId, VersionedData data);
 }

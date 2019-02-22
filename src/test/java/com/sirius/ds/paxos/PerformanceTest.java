@@ -17,7 +17,7 @@ public class PerformanceTest extends SimpleProposalTest {
     @Before
     @Override
     public void init() {
-        super.size = 5;
+        super.size = 3;
         super.init();
     }
 
@@ -31,7 +31,7 @@ public class PerformanceTest extends SimpleProposalTest {
     private void batch() throws InterruptedException {
         String key = UUID.randomUUID().toString();
         List<Callable<Boolean>> tasks = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             tasks.add(() -> services[new Random().nextInt(size)].propose(key,
                     ("pippo" + new Random().nextInt()).getBytes(),
                     100,
@@ -40,7 +40,7 @@ public class PerformanceTest extends SimpleProposalTest {
 
         AtomicInteger count = new AtomicInteger(0);
         long start = System.currentTimeMillis();
-        Executors.newFixedThreadPool(32).invokeAll(tasks).forEach(f -> {
+        Executors.newFixedThreadPool(8).invokeAll(tasks).forEach(f -> {
             try {
                 f.get();
                 count.incrementAndGet();

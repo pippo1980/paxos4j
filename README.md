@@ -8,17 +8,16 @@ paxos implement with java
 * InstanceWAL
 * DataStorage
 
-## use snowflake distribute id algorithm to generate instanceId
-to avoid central node when currency propose value on different worker node, use snowflake algorithm to generate instanceId on worker node each other.
+## Generate an instanceId using the snowflake allocation id algorithm
+When the currency raises values ​​on different working nodes to avoid the central node, the snowflake algorithm is used to generate instanceId on the working node.
 ![](https://github.com/pippo1980/paxos4j/blob/master/doc/snowflake.png)
 
-
-## optimizer the proposal currency commit to the real storage
+## The optimizer proposal currency is submitted to the actual storage
 1. use versioned data storage to store the real proposal value
-2. use the instanceId for the data version, means that the learned proposal with the same key will be commit by their instanceId order.
-3. if the proposal is learned, but the proposal instanceId less then committed value's instanceId with same key, commit would be fail.
+2. Use instanceId for the data version, meaning that learning proposals with the same key will be submitted in the order of their instanceId.
+3. If the proposal is learned, but the proposal instanceId is less than the instanceId using the same key to submit the value, the submission will fail.
 
-## simulation currency propose with multi thread
+## Simulated currency proposed multi threading
 ```java
 
 public class SimpleProposalTest {
@@ -82,8 +81,6 @@ public class SimpleProposalTest {
         }
     }
 }
-
-
 ```
 
 ## REFERENCES

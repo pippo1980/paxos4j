@@ -1,133 +1,135 @@
 package com.sirius.ds.paxos.engine;
 
-import com.sirius.ds.paxos.ClusterDelegate;
-import com.sirius.ds.paxos.InstanceException;
-import com.sirius.ds.paxos.InstanceStatus;
 import com.sirius.ds.paxos.InstanceWAL;
+import com.sirius.ds.paxos.PaxosCluster;
 import com.sirius.ds.paxos.PeerID;
 import com.sirius.ds.paxos.Proposer;
+import com.sirius.ds.paxos.msg.AcceptRQ;
 import com.sirius.ds.paxos.msg.AcceptRS;
 import com.sirius.ds.paxos.msg.PrepareRS;
-import com.sirius.ds.paxos.msg.Proposal;
 import com.sirius.ds.paxos.msg.VersionedData;
+import com.sirius.ds.paxos.stat.Instance;
+import com.sirius.ds.paxos.stat.InstanceStatus;
+import com.sirius.ds.paxos.stat.InvalidInstanceStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DefaultProposer implements Proposer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultProposer.class);
 
-    public DefaultProposer(ClusterDelegate clusterDelegate) {
-        this.clusterDelegate = clusterDelegate;
+    public DefaultProposer(PaxosCluster cluster) {
+        this.cluster = cluster;
     }
 
-    private ClusterDelegate clusterDelegate;
+    private PaxosCluster cluster;
 
     @Override
     public void onMessage(PrepareRS msg) {
-        LOGGER.debug("receive prepare rs:{} from node:{} to node:{}",
-                msg,
-                msg.getPeerID(),
-                clusterDelegate.getCurrent().getID());
+        PeerID currentId = cluster.getCurrent().getID();
 
-        InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();
-        if (!instanceWAL.exist(msg.getInstanceId())) {
-            throw new InstanceException(String.format("can not found instance:[%s] on node:[%s]",
-                    msg.getInstanceId(),
-                    clusterDelegate.getCurrent()));
+        LOGGER.debug("receive prepare rs from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
+
+        InstanceWAL instanceWAL = cluster.getInstanceWAL();
+        long instanceId = msg.getInstanceId();
+        if (!instanceWAL.exists(instanceId)) {
+            throw new InvalidInstanceStatusException(String.format("can not found instance:[%s] on node:[%s]",
+                    instanceId,
+                    currentId));
         }
 
-        instanceWAL.get(msg.getInstanceId()).write(_instance -> {
+        Instance instance = instanceWAL.get(instanceId);
 
-            if (!msg.isPrepareOK()) {
-                LOGGER.debug("forbidden prepare msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
-                return _instance;
+        AtomicBoolean ok = new AtomicBoolean(false);
+        AcceptRQ acceptRQ = new AcceptRQ();
+        instance.onPrepareRS(msg, _instance -> {
+            if (_instance.isCommitted()) {
+                return;
             }
 
-            _instance.getPreparePromised().add(msg.getPeerID());
-
-            if (_instance.getStatus() != InstanceStatus.PREPARE) {
-                LOGGER.debug("ignore prepare rs:{}, because the instance:{} status is not prepare", msg, _instance);
-                return _instance;
+            int count = _instance.getPrepared().size();
+            if (count < cluster.getQuorum()) {
+                LOGGER.debug("waiting instance prepared quorum:{}/{} at node:{}, the instance is:{}",
+                        count,
+                        cluster.getQuorum(),
+                        currentId,
+                        _instance);
+                return;
             }
 
-            // if remote peer prepared ballot great then my proposal ballot, accept their proposal ballot and value
-            Proposal proposal = _instance.getProposal();
-            if (msg.getPreparedBallot() > _instance.getProposal().getBallot()) {
-                proposal.setBallot(msg.getPreparedBallot());
-                proposal.setValue(msg.getPreparedProposal().getValue());
+
+
+            if (count == cluster.getQuorum()) {
+                LOGGER.debug("reach instance prepared quorum:{}/{} at node:{}, the instance is:{}",
+                        count,
+                        cluster.getQuorum(),
+                        currentId,
+                        _instance);
+
+                _instance.setStatus(InstanceStatus.PREPARE_OK);
+
+                acceptRQ.setPeerID(currentId);
+                acceptRQ.setInstanceId(instanceId);
+                acceptRQ.setBallot(_instance.getPromisedBallot());
+                acceptRQ.setData(_instance.getAcceptData());
+                ok.set(true);
             }
 
-            // if prepared ballot with quorum node, then accept instance proposal
-            int preparedCount = _instance.getPreparePromised().size();
-            if (preparedCount < clusterDelegate.getQuorum()) {
-                LOGGER.debug("waiting proposal:{} reach prepared quorum:{}/{}",
-                        proposal,
-                        preparedCount,
-                        clusterDelegate.getQuorum());
-                return _instance;
-            } else if (preparedCount == clusterDelegate.getQuorum()) {
-                // if remote peer accept ballot but no proposal, use current peer node proposal;
-                PeerID peerID = clusterDelegate.getCurrent().getID();
-                if (proposal == null) {
-                    proposal = instanceWAL.getPeerProposal(_instance.getInstanceId(), peerID);
-                    _instance.setProposal(proposal);
-                }
-
-                _instance.setStatus(InstanceStatus.ACCEPT);
-                LOGGER.debug("chosen proposal:{} at node:{}", proposal, clusterDelegate.getCurrent().getID());
-            }
-
-            return _instance;
         });
+
+        LOGGER.debug("change instance stat at node:{}, the instance is:{}", currentId, instance);
+        if (ok.get()) {
+            cluster.send(msg.getPeerID(), acceptRQ);
+        }
     }
 
     @Override
     public void onMessage(AcceptRS msg) {
-        LOGGER.debug("receive accept rs:{} from node:{} to node:{}",
-                msg,
-                msg.getPeerID(),
-                clusterDelegate.getCurrent().getID());
+        PeerID currentId = cluster.getCurrent().getID();
 
-        InstanceWAL instanceWAL = clusterDelegate.getInstanceWAL();
-        if (!instanceWAL.exist(msg.getInstanceId())) {
-            throw new InstanceException(String.format("can not found instance:[%s] on node:[%s]",
-                    msg.getInstanceId(),
-                    clusterDelegate.getCurrent()));
+        LOGGER.debug("receive accept rs from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
+
+        InstanceWAL instanceWAL = cluster.getInstanceWAL();
+        long instanceId = msg.getInstanceId();
+        if (!instanceWAL.exists(instanceId)) {
+            throw new InvalidInstanceStatusException(String.format("can not found instance:[%s] on node:[%s]",
+                    instanceId,
+                    currentId));
         }
 
-        instanceWAL.get(msg.getInstanceId()).write(_instance -> {
-            if (!msg.isAcceptOK()) {
-                LOGGER.debug("forbidden accept msg:{} at node:{}", msg, clusterDelegate.getCurrent().getID());
-                return _instance;
+        Instance instance = instanceWAL.get(instanceId);
+        instance.onAcceptRS(msg, _instance -> {
+            if (_instance.isCommitted()) {
+                return;
             }
 
-            _instance.getAcceptPromised().add(msg.getPeerID());
-
-            if (_instance.getStatus() != InstanceStatus.ACCEPT) {
-                LOGGER.debug("ignore accept rs:{}, because the instance:{} status is not accept", msg, _instance);
-                return _instance;
+            int count = _instance.getAccepted().size();
+            if (count < cluster.getQuorum()) {
+                LOGGER.debug("waiting instance accepted quorum:{}/{} at node:{}, the instance is:{}",
+                        count,
+                        cluster.getQuorum(),
+                        currentId,
+                        _instance);
+                return;
             }
 
-            // if accepted with quorum node, then commit current proposal to data storage
-            Proposal proposal = _instance.getProposal();
-            int acceptedCount = _instance.getAcceptPromised().size();
-            if (acceptedCount >= clusterDelegate.getQuorum()) {
-                _instance.setStatus(InstanceStatus.COMMIT);
+            if (count == cluster.getQuorum()) {
+                LOGGER.debug("reach instance accepted quorum:{}/{} at node:{}, the instance is:{}",
+                        count,
+                        cluster.getQuorum(),
+                        currentId,
+                        _instance);
 
-                clusterDelegate.getStorage()
-                        .put(proposal.getKey(), new VersionedData(_instance.getInstanceId(), proposal.getValue()));
-                LOGGER.debug("commit proposal:{} at node:{}", proposal, clusterDelegate.getCurrent().getID());
-            } else {
-                LOGGER.debug("waiting proposal:{} reach accept quorum:{}/{}",
-                        proposal,
-                        acceptedCount,
-                        clusterDelegate.getQuorum());
+                VersionedData data = _instance.getAcceptData();
+                data.setInstanceId(instanceId);
+                cluster.getStorage().put(data.getKey(), data);
+
+                _instance.commit();
             }
-
-            return _instance;
         });
 
+        LOGGER.debug("change instance stat at node:{}, the instance is:{}", currentId, instance);
     }
-
 }

@@ -1,10 +1,10 @@
 package com.sirius.ds.paxos;
 
-import com.sirius.ds.paxos.engine.BaseClusterDelegate;
+import com.sirius.ds.paxos.engine.BasePaxosCluster;
 import com.sirius.ds.paxos.engine.DefaultPeerNode;
 import com.sirius.ds.paxos.engine.MemoryDataStorage;
 import com.sirius.ds.paxos.engine.MemoryInstanceWAL;
-import com.sirius.ds.paxos.engine.MockClusterDelegate;
+import com.sirius.ds.paxos.engine.MockPaxosCluster;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,15 +22,15 @@ public class PaxosServiceFactory {
     }
 
     private Map<PeerID, DefaultPeerNode> members = new HashMap<>();
-    private Map<PeerID, BaseClusterDelegate> services = new HashMap<>();
+    private Map<PeerID, BasePaxosCluster> services = new HashMap<>();
 
-    public synchronized BaseClusterDelegate get(PeerID id) {
+    public synchronized BasePaxosCluster get(PeerID id) {
 
-        BaseClusterDelegate service = services.get(id);
+        BasePaxosCluster service = services.get(id);
         if (service == null) {
             InstanceWAL instanceWAL = new MemoryInstanceWAL();
-            DataStorage storage = new MemoryDataStorage();
-            service = new MockClusterDelegate(instanceWAL, storage);
+            DataStorage storage = new MemoryDataStorage(id);
+            service = new MockPaxosCluster(instanceWAL, storage);
             service.init(members.get(id), new HashSet<>(members.values()));
             services.put(id, service);
             members.get(id).setClusterDelegate(service);
