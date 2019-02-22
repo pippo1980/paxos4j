@@ -6,6 +6,7 @@ import com.sirius.ds.paxos.PeerID;
 import com.sirius.ds.paxos.Proposer;
 import com.sirius.ds.paxos.msg.AcceptRQ;
 import com.sirius.ds.paxos.msg.AcceptRS;
+import com.sirius.ds.paxos.msg.PaxosMessage;
 import com.sirius.ds.paxos.msg.PrepareRS;
 import com.sirius.ds.paxos.msg.VersionedData;
 import com.sirius.ds.paxos.stat.Instance;
@@ -14,6 +15,10 @@ import com.sirius.ds.paxos.stat.InvalidInstanceStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DefaultProposer implements Proposer {
@@ -22,12 +27,37 @@ public class DefaultProposer implements Proposer {
 
     public DefaultProposer(PaxosCluster cluster) {
         this.cluster = cluster;
+
+        Executors.newFixedThreadPool(1).execute(() -> {
+            while (true) {
+                try {
+                    PaxosMessage message = queue.poll(10, TimeUnit.MILLISECONDS);
+                    if (message instanceof PrepareRS) {
+                        process((PrepareRS) message);
+                    } else if (message instanceof AcceptRS) {
+                        process((AcceptRS) message);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private PaxosCluster cluster;
+    private BlockingQueue<PaxosMessage> queue = new LinkedBlockingQueue<>();
 
     @Override
     public void onMessage(PrepareRS msg) {
+        process(msg);
+    }
+
+    @Override
+    public void onMessage(AcceptRS msg) {
+        process(msg);
+    }
+
+    private void process(PrepareRS msg) {
         PeerID currentId = cluster.getCurrent().getID();
 
         LOGGER.debug("receive prepare rs from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
@@ -59,8 +89,6 @@ public class DefaultProposer implements Proposer {
                 return;
             }
 
-
-
             if (count == cluster.getQuorum()) {
                 LOGGER.debug("reach instance prepared quorum:{}/{} at node:{}, the instance is:{}",
                         count,
@@ -81,12 +109,12 @@ public class DefaultProposer implements Proposer {
 
         LOGGER.debug("change instance stat at node:{}, the instance is:{}", currentId, instance);
         if (ok.get()) {
-            cluster.send(msg.getPeerID(), acceptRQ);
+            // cluster.send(msg.getPeerID(), acceptRQ);
+            cluster.broadcast(acceptRQ);
         }
     }
 
-    @Override
-    public void onMessage(AcceptRS msg) {
+    private void process(AcceptRS msg) {
         PeerID currentId = cluster.getCurrent().getID();
 
         LOGGER.debug("receive accept rs from node:{} to node:{}, the msg is:{}", msg.getPeerID(), currentId, msg);
@@ -100,11 +128,11 @@ public class DefaultProposer implements Proposer {
         }
 
         Instance instance = instanceWAL.get(instanceId);
-        instance.onAcceptRS(msg, _instance -> {
-            if (_instance.isCommitted()) {
-                return;
-            }
+        if (instance.isCommitted()) {
+            return;
+        }
 
+        instance.onAcceptRS(msg, _instance -> {
             int count = _instance.getAccepted().size();
             if (count < cluster.getQuorum()) {
                 LOGGER.debug("waiting instance accepted quorum:{}/{} at node:{}, the instance is:{}",
@@ -125,11 +153,13 @@ public class DefaultProposer implements Proposer {
                 VersionedData data = _instance.getAcceptData();
                 data.setInstanceId(instanceId);
                 cluster.getStorage().put(data.getKey(), data);
-
                 _instance.commit();
             }
         });
 
         LOGGER.debug("change instance stat at node:{}, the instance is:{}", currentId, instance);
+        if (instance.isCommitted()) {
+            cluster.broadcast(msg);
+        }
     }
 }

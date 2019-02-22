@@ -123,8 +123,6 @@ public class InstanceStatMachine extends Instance {
         while (!committed.get()) {
             if (committed.compareAndSet(false, true)) {
                 setStatus(InstanceStatus.ACCEPT_OK);
-                rwl = null;
-                listener = null;
             }
         }
     }

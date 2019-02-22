@@ -14,7 +14,9 @@ import java.util.function.Consumer;
 
 public abstract class Instance implements StatMachine {
 
+    transient AtomicBoolean committed = new AtomicBoolean(false);
     transient ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
+    transient Consumer<InstanceStatus> listener = null;
 
     public Instance() {
 
@@ -25,6 +27,11 @@ public abstract class Instance implements StatMachine {
         this.acceptData = acceptData;
     }
 
+    public void clean() {
+        rwl = null;
+        listener = null;
+    }
+
     long instanceId;
     InstanceStatus status = InstanceStatus.INIT;
     int promisedBallot = 0;
@@ -32,7 +39,6 @@ public abstract class Instance implements StatMachine {
     VersionedData acceptData = null;
     Set<PeerID> prepared = new HashSet<>();
     Set<PeerID> accepted = new HashSet<>();
-    AtomicBoolean committed = new AtomicBoolean(false);
 
     public long getInstanceId() {
         return instanceId;
@@ -101,8 +107,6 @@ public abstract class Instance implements StatMachine {
     public boolean isCommitted() {
         return committed.get();
     }
-
-    protected Consumer<InstanceStatus> listener = null;
 
     @Override
     public void registerStatusListener(Consumer<InstanceStatus> listener) {

@@ -8,7 +8,7 @@ public interface PaxosService {
 
     PeerNode getCurrent();
 
-    boolean propose(String key, byte[] value, long timeout, TimeUnit timeUnit);
+    boolean propose(String key, byte[] value, boolean syncLearn, long timeout, TimeUnit timeUnit);
 
     VersionedData get(String key);
 

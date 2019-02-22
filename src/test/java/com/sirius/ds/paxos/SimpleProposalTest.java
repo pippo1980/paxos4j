@@ -39,7 +39,7 @@ public class SimpleProposalTest {
     @Test
     public void proposeOne() {
         String key = UUID.randomUUID().toString();
-        boolean success = services[0].propose(key, "pippo".getBytes(), 10, TimeUnit.SECONDS);
+        boolean success = services[0].propose(key, "pippo".getBytes(), false, 10, TimeUnit.SECONDS);
         Assert.assertTrue(success);
 
         Assert.assertEquals("pippo", new String(services[0].get(key).getPayload()));
@@ -55,7 +55,7 @@ public class SimpleProposalTest {
             tasks.add(new Callable<Boolean>() {
                 @Override
                 public Boolean call() throws Exception {
-                    return services[_i].propose(key, ("pippo" + _i).getBytes(), 10, TimeUnit.SECONDS);
+                    return services[_i].propose(key, ("pippo" + _i).getBytes(), false, 10, TimeUnit.SECONDS);
                 }
             });
         }
@@ -86,7 +86,7 @@ public class SimpleProposalTest {
             // currency put value with same key on different node
             tasks.add(() -> {
                 for (int j = 0; j < 10; j++) {
-                    services[_i].propose(key, ("pippo" + j).getBytes(), 1, TimeUnit.SECONDS);
+                    services[_i].propose(key, ("pippo" + j).getBytes(), false, 10, TimeUnit.SECONDS);
                 }
 
                 return true;

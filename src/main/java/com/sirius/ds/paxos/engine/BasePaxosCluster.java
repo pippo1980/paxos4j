@@ -42,7 +42,7 @@ public abstract class BasePaxosCluster implements PaxosCluster {
     }
 
     @Override
-    public boolean propose(String key, byte[] value, long timeout, TimeUnit timeUnit) {
+    public boolean propose(String key, byte[] value, boolean syncLearn, long timeout, TimeUnit timeUnit) {
         PeerID currentID = current.getID();
         long instanceId = IDGenerator.INSTANCE.nextId(currentID.nodeId);
         VersionedData data = new VersionedData(key, value);
@@ -52,8 +52,10 @@ public abstract class BasePaxosCluster implements PaxosCluster {
         try {
             return prepare(instance, block, timeout, timeUnit) && accept(instance, block, timeout, timeUnit);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOGGER.error("propose due to error", e);
             return false;
+        } finally {
+            instance.clean();
         }
     }
 
@@ -78,7 +80,6 @@ public abstract class BasePaxosCluster implements PaxosCluster {
         } else {
             return true;
         }
-
     }
 
     protected boolean accept(Instance instance, Semaphore block, long timeout, TimeUnit timeUnit) throws
@@ -88,11 +89,9 @@ public abstract class BasePaxosCluster implements PaxosCluster {
         }
 
         instance.registerStatusListener(status -> {
-            System.out.println("####1" + status);
             if (status == InstanceStatus.ACCEPT_OK) {
                 block.release();
             }
-            System.out.println("####2" + status);
         });
 
         boolean success = block.tryAcquire(timeout, timeUnit);
@@ -101,6 +100,19 @@ public abstract class BasePaxosCluster implements PaxosCluster {
         }
 
         return success || prepare(instance, block, timeout, timeUnit);
+    }
+
+    protected boolean learn(Instance instance,
+            Semaphore block,
+            boolean syncLearn,
+            long timeout,
+            TimeUnit timeUnit) throws InterruptedException {
+
+        if (!syncLearn) {
+            return true;
+        }
+
+        return true;
     }
 
 }
