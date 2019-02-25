@@ -16,7 +16,7 @@ public abstract class Instance implements StatMachine {
 
     transient AtomicBoolean committed = new AtomicBoolean(false);
     transient ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
-    transient Consumer<InstanceStatus> listener = null;
+    transient Consumer<InstanceStatus> watcher = null;
 
     public Instance() {
 
@@ -29,7 +29,7 @@ public abstract class Instance implements StatMachine {
 
     public void clean() {
         rwl = null;
-        listener = null;
+        watcher = null;
     }
 
     long instanceId;
@@ -62,8 +62,8 @@ public abstract class Instance implements StatMachine {
         try {
             this.status = status;
 
-            if (listener != null) {
-                listener.accept(status);
+            if (watcher != null) {
+                watcher.accept(status);
             }
         } finally {
             rwl.writeLock().unlock();
@@ -109,14 +109,15 @@ public abstract class Instance implements StatMachine {
     }
 
     @Override
-    public void registerStatusListener(Consumer<InstanceStatus> listener) {
-        this.listener = listener;
+    public void registerStatusWatcher(Consumer<InstanceStatus> watcher) {
+        this.watcher = watcher;
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper("")
                 .add("instanceId", instanceId)
+                .add("committed", committed.get())
                 .add("status", status)
                 .add("promisedBallot", promisedBallot)
                 .add("acceptBallot", acceptBallot)

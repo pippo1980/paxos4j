@@ -103,6 +103,10 @@ public class InstanceStatMachine extends Instance {
     }
 
     public void onAcceptRS(AcceptRS msg, Consumer<Instance> callback) {
+        if (committed.get()) {
+            return;
+        }
+
         rwl.writeLock().lock();
         try {
             if (accepted.contains(msg.getPeerID())) {

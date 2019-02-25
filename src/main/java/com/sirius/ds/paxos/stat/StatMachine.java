@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 public interface StatMachine {
 
-    void registerStatusListener(Consumer<InstanceStatus> listener);
+    void registerStatusWatcher(Consumer<InstanceStatus> listener);
 
     PrepareRQ prepare(PeerID currentId);
 

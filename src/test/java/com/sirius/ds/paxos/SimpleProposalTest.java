@@ -39,7 +39,7 @@ public class SimpleProposalTest {
     @Test
     public void proposeOne() {
         String key = UUID.randomUUID().toString();
-        boolean success = services[0].propose(key, "pippo".getBytes(), false, 10, TimeUnit.SECONDS);
+        boolean success = services[0].propose(key, "pippo".getBytes(), true, 1000, TimeUnit.SECONDS);
         Assert.assertTrue(success);
 
         Assert.assertEquals("pippo", new String(services[0].get(key).getPayload()));
@@ -52,12 +52,7 @@ public class SimpleProposalTest {
         List<Callable<Boolean>> tasks = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             final int _i = i;
-            tasks.add(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
-                    return services[_i].propose(key, ("pippo" + _i).getBytes(), false, 10, TimeUnit.SECONDS);
-                }
-            });
+            tasks.add(() -> services[_i].propose(key, ("pippo" + _i).getBytes(), false, 100, TimeUnit.MILLISECONDS));
         }
 
         Executors.newFixedThreadPool(size * 4).invokeAll(tasks).forEach(f -> {
@@ -86,7 +81,7 @@ public class SimpleProposalTest {
             // currency put value with same key on different node
             tasks.add(() -> {
                 for (int j = 0; j < 10; j++) {
-                    services[_i].propose(key, ("pippo" + j).getBytes(), false, 10, TimeUnit.SECONDS);
+                    services[_i].propose(key, ("pippo" + j).getBytes(), false, 100, TimeUnit.MILLISECONDS);
                 }
 
                 return true;
@@ -109,12 +104,12 @@ public class SimpleProposalTest {
         }
     }
 
-    private void assertConsistency(String key) {
+    protected void assertConsistency(String key) {
         for (PaxosService service : services) {
             VersionedData target = service.get(key);
             Arrays.stream(services).forEach(s -> {
                 System.out.println(service.getCurrent().getID() + "####" + s.getCurrent().getID());
-                Assert.assertEquals(target, s.get(key));
+                Assert.assertEquals(Arrays.toString(target.getPayload()), Arrays.toString(s.get(key).getPayload()));
             });
         }
     }

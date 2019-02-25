@@ -3,7 +3,7 @@ package com.sirius.ds.paxos.msg;
 import com.google.common.base.MoreObjects;
 import com.sirius.ds.paxos.PeerID;
 
-public class PrepareRS {
+public class PrepareRS implements PaxosMessage {
 
     public PrepareRS() {
 

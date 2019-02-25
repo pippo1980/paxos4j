@@ -6,6 +6,7 @@ import com.sirius.ds.paxos.PeerID;
 import com.sirius.ds.paxos.Proposer;
 import com.sirius.ds.paxos.msg.AcceptRQ;
 import com.sirius.ds.paxos.msg.AcceptRS;
+import com.sirius.ds.paxos.msg.LearnRQ;
 import com.sirius.ds.paxos.msg.PaxosMessage;
 import com.sirius.ds.paxos.msg.PrepareRS;
 import com.sirius.ds.paxos.msg.VersionedData;
@@ -28,17 +29,26 @@ public class DefaultProposer implements Proposer {
     public DefaultProposer(PaxosCluster cluster) {
         this.cluster = cluster;
 
-        Executors.newFixedThreadPool(1).execute(() -> {
-            while (true) {
+        Executors.newFixedThreadPool(4).execute(() -> {
+            boolean flag = true;
+            PaxosMessage message = null;
+            while (flag) {
                 try {
-                    PaxosMessage message = queue.poll(10, TimeUnit.MILLISECONDS);
+                    message = queue.poll(10, TimeUnit.MILLISECONDS);
                     if (message instanceof PrepareRS) {
                         process((PrepareRS) message);
                     } else if (message instanceof AcceptRS) {
                         process((AcceptRS) message);
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    flag = false;
+                    LOGGER.error("proposer:{} process termination with error", cluster.getCurrent().getID(), e);
+                } catch (Exception e) {
+                    LOGGER.error("proposer:{} process msg:{} due to error:{}, the instance is:{}",
+                            cluster.getCurrent().getID(),
+                            message,
+                            e,
+                            cluster.getInstanceWAL().get(message.getInstanceId()));
                 }
             }
         });
@@ -49,12 +59,14 @@ public class DefaultProposer implements Proposer {
 
     @Override
     public void onMessage(PrepareRS msg) {
-        process(msg);
+        // process(msg);
+        queue.offer(msg);
     }
 
     @Override
     public void onMessage(AcceptRS msg) {
-        process(msg);
+        // process(msg);
+        queue.offer(msg);
     }
 
     private void process(PrepareRS msg) {
@@ -122,9 +134,8 @@ public class DefaultProposer implements Proposer {
         InstanceWAL instanceWAL = cluster.getInstanceWAL();
         long instanceId = msg.getInstanceId();
         if (!instanceWAL.exists(instanceId)) {
-            throw new InvalidInstanceStatusException(String.format("can not found instance:[%s] on node:[%s]",
-                    instanceId,
-                    currentId));
+            LOGGER.warn("can not found instance:[{}] on node:[{}]", instanceId, currentId);
+            return;
         }
 
         Instance instance = instanceWAL.get(instanceId);
@@ -159,7 +170,7 @@ public class DefaultProposer implements Proposer {
 
         LOGGER.debug("change instance stat at node:{}, the instance is:{}", currentId, instance);
         if (instance.isCommitted()) {
-            cluster.broadcast(msg);
+            cluster.broadcast(new LearnRQ(currentId, instance.getAcceptData()));
         }
     }
 }

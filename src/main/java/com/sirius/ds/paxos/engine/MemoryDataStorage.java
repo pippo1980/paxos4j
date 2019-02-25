@@ -34,20 +34,16 @@ public class MemoryDataStorage implements DataStorage {
         lock.lock();
         try {
             VersionedData exists = _storage.get(uuid);
-            if (exists == null) {
-                return _storage.put(uuid, data);
-            }
-
-            if (data.getInstanceId() < exists.getInstanceId()) {
-                LOGGER.warn("ignore put data on node:{}, because exist newer data:{}, old data is:{}",
-                        peerID,
-                        data,
-                        exists,
-                        data);
+            if (exists == null || data.getInstanceId() > exists.getInstanceId()) {
+                _storage.put(uuid, data);
                 return data;
             }
 
-            return _storage.put(uuid, data);
+            LOGGER.warn("ignore put data on node:{}, because exist newer data:{}, old data is:{}",
+                    peerID,
+                    data,
+                    exists);
+            return exists;
         } finally {
             lock.unlock();
         }

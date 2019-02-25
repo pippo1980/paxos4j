@@ -19,7 +19,7 @@ public class DefaultPeerNode implements PeerNode {
     public void setClusterDelegate(PaxosCluster cluster) {
         this.proposer = new DefaultProposer(cluster);
         this.acceptor = new DefaultAcceptor(cluster);
-        this.learner = null;
+        this.learner = new DefaultLearner(cluster);
     }
 
     private PeerID peerID;

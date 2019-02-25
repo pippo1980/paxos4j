@@ -17,6 +17,12 @@ public class VersionedData implements Comparable<VersionedData> {
         this.payload = payload;
     }
 
+    public VersionedData(long instanceId, String key, byte[] payload) {
+        this.instanceId = instanceId;
+        this.key = key;
+        this.payload = payload;
+    }
+
     private long instanceId;
     private String key;
     private byte[] payload;

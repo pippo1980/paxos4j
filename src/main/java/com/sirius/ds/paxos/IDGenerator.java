@@ -49,15 +49,15 @@ public class IDGenerator {
     private void prepareSlots() {
         long second = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
 
-        // 生成60s之后的slots
-        for (long i = 0; i < 60; i++) {
-            long slot_second = second + 60 + i;
-            slots.put(slot_second, new Slot(generator, slot_second));
+        // 生成10s之后的slots
+        for (long i = 0; i < 10; i++) {
+            long slot_second = second + i;
+            slots.computeIfAbsent(slot_second, (k) -> new Slot(generator, slot_second));
         }
 
-        // 清除120s之前的slots
-        for (long i = 0; i < 120; i++) {
-            long slot_second = second - 60 - i;
+        // 清除60s之前的slots
+        for (long i = 0; i < 60; i++) {
+            long slot_second = second - 61 - i;
             Slot slot = slots.remove(slot_second);
             if (slot != null) {
                 slot.generator = null;

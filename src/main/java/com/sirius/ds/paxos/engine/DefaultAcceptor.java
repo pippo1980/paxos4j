@@ -24,8 +24,9 @@ public class DefaultAcceptor implements Acceptor {
     public DefaultAcceptor(PaxosCluster cluster) {
         this.cluster = cluster;
 
-        Executors.newFixedThreadPool(1).execute(() -> {
-            while (true) {
+        Executors.newFixedThreadPool(4).execute(() -> {
+            boolean flag =true;
+            while (flag) {
                 try {
                     PaxosMessage message = queue.poll(10, TimeUnit.MILLISECONDS);
                     if (message instanceof PrepareRQ) {
@@ -34,7 +35,8 @@ public class DefaultAcceptor implements Acceptor {
                         process((AcceptRQ) message);
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    flag=false;
+                    LOGGER.error("acceptor process termination with error", e);
                 }
             }
         });

@@ -23,7 +23,7 @@ public class PerformanceTest extends SimpleProposalTest {
 
     @Test
     public void batchWithoutWaitLearn() throws InterruptedException {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             batch();
         }
     }
@@ -31,9 +31,10 @@ public class PerformanceTest extends SimpleProposalTest {
     private void batch() throws InterruptedException {
         String key = UUID.randomUUID().toString();
         List<Callable<Boolean>> tasks = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10000; i++) {
             tasks.add(() -> services[new Random().nextInt(size)].propose(key,
                     ("pippo" + new Random().nextInt()).getBytes(),
+                    true,
                     100,
                     TimeUnit.MILLISECONDS));
         }
@@ -57,5 +58,7 @@ public class PerformanceTest extends SimpleProposalTest {
                 cost,
                 count.get(),
                 (1000 / (double) cost) * count.get()));
+
+        assertConsistency(key);
     }
 }
