@@ -22,7 +22,7 @@
         <appender-ref ref="stdout"/>
     </root>
 
-    <!--<logger name="com.sirius" level="debug"/>-->
+    <logger name="com.sirius" level="debug"/>
 
     <!--apm logger-->
     <!--<logger name="groovy.filters" level="info" additivity="false">-->
