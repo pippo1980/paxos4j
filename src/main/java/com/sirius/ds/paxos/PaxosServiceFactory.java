@@ -4,7 +4,7 @@ import com.sirius.ds.paxos.engine.BasePaxosCluster;
 import com.sirius.ds.paxos.engine.DefaultPeerNode;
 import com.sirius.ds.paxos.engine.MemoryDataStorage;
 import com.sirius.ds.paxos.engine.MemoryInstanceWAL;
-import com.sirius.ds.paxos.engine.MockPaxosCluster;
+import com.sirius.ds.paxos.engine.MemoryPaxosCluster;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +30,7 @@ public class PaxosServiceFactory {
         if (service == null) {
             InstanceWAL instanceWAL = new MemoryInstanceWAL();
             DataStorage storage = new MemoryDataStorage(id);
-            service = new MockPaxosCluster(instanceWAL, storage);
+            service = new MemoryPaxosCluster(instanceWAL, storage);
             service.init(members.get(id), new HashSet<>(members.values()));
             services.put(id, service);
             members.get(id).setClusterDelegate(service);

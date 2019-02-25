@@ -12,11 +12,11 @@ import com.sirius.ds.paxos.msg.PrepareRS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockPaxosCluster extends BasePaxosCluster {
+public class MemoryPaxosCluster extends BasePaxosCluster {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MockPaxosCluster.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryPaxosCluster.class);
 
-    public MockPaxosCluster(InstanceWAL instanceWAL, DataStorage storage) {
+    public MemoryPaxosCluster(InstanceWAL instanceWAL, DataStorage storage) {
         this.instanceWAL = instanceWAL;
         this.storage = storage;
     }
