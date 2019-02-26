@@ -11,6 +11,7 @@ paxos implement with java
 ### the paxos working theory
 
 ### the instance stat machine
+Each proposal associate paxos instance, which maintain the prepare&accept&learn stat by stat machine.
 ![](https://github.com/pippo1980/paxos4j/blob/master/doc/statmachine.png)
 
 ## Generate an instanceId using the snowflake allocation id algorithm
