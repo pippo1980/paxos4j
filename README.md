@@ -4,13 +4,14 @@ paxos implement with java
 ## Paxos algorithm implement and core points
 
 ### the implement has such processor role
-* Proposer : propose a new value.
-* Acceptor : check the propose instance stat on each node, and accept or reject the instance prepare and accept request. 
-* Leaner : apply the accepted value to the storage, maybe file or db.
-* InstanceWAL : instance work ahead log on each paxos node, to record the instance stat when receive the paxos message. 
-* DataStorage : facade for the actual persist data storage.
+* _Proposer_ : propose a new value.
+* _Acceptor_ : check the propose instance stat on each node, and accept or reject the instance prepare and accept request. 
+* _Leaner_ : apply the accepted value to the storage, maybe file or db.
+* _InstanceWAL_ : instance work ahead log on each paxos node, to record the instance stat when receive the paxos message. 
+* _DataStorage_ : facade for the actual persist data storage.
 
 ### the paxos processor coordinate theory
+![](https://github.com/pippo1980/paxos4j/blob/master/doc/paxos_processor.png)
 
 ### the instance stat machine
 Each proposal associate paxos instance, which maintain the prepare&accept&learn stat by stat machine.
