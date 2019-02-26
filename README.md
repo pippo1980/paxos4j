@@ -1,14 +1,16 @@
 # paxos4j
 paxos implement with java
 
-## service have such components below
-* Proposer 
-* Acceptor
-* Leaner
-* InstanceWAL
-* DataStorage
+## Paxos algorithm implement and core points
 
-### the paxos working theory
+### the implement has such processor role
+* Proposer : propose a new value.
+* Acceptor : check the propose instance stat on each node, and accept or reject the instance prepare and accept request. 
+* Leaner : apply the accepted value to the storage, maybe file or db.
+* InstanceWAL : instance work ahead log on each paxos node, to record the instance stat when receive the paxos message. 
+* DataStorage : facade for the actual persist data storage.
+
+### the paxos processor coordinate theory
 
 ### the instance stat machine
 Each proposal associate paxos instance, which maintain the prepare&accept&learn stat by stat machine.
