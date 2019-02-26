@@ -16,57 +16,43 @@ import com.sirius.ds.paxos.stat.InvalidInstanceStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class DefaultProposer implements Proposer {
+public class DefaultProposer extends DefaultWorker implements Proposer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultProposer.class);
 
     public DefaultProposer(PaxosCluster cluster) {
+        super(cluster.getCurrent().getID().nodeId, "proposer", 8);
         this.cluster = cluster;
-
-        Executors.newFixedThreadPool(4).execute(() -> {
-            boolean flag = true;
-            PaxosMessage message = null;
-            while (flag) {
-                try {
-                    message = queue.poll(10, TimeUnit.MILLISECONDS);
-                    if (message instanceof PrepareRS) {
-                        process((PrepareRS) message);
-                    } else if (message instanceof AcceptRS) {
-                        process((AcceptRS) message);
-                    }
-                } catch (InterruptedException e) {
-                    flag = false;
-                    LOGGER.error("proposer:{} process termination with error", cluster.getCurrent().getID(), e);
-                } catch (Exception e) {
-                    LOGGER.error("proposer:{} process msg:{} due to error:{}, the instance is:{}",
-                            cluster.getCurrent().getID(),
-                            message,
-                            e,
-                            cluster.getInstanceWAL().get(message.getInstanceId()));
-                }
-            }
-        });
+        this.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
     private PaxosCluster cluster;
-    private BlockingQueue<PaxosMessage> queue = new LinkedBlockingQueue<>();
 
     @Override
     public void onMessage(PrepareRS msg) {
-        // process(msg);
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
     }
 
     @Override
     public void onMessage(AcceptRS msg) {
-        // process(msg);
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
+    }
+
+    @Override
+    protected PaxosCluster getPaxosCluster() {
+        return this.cluster;
+    }
+
+    @Override
+    protected void process(PaxosMessage message) {
+        if (message instanceof PrepareRS) {
+            process((PrepareRS) message);
+        } else if (message instanceof AcceptRS) {
+            process((AcceptRS) message);
+        }
     }
 
     private void process(PrepareRS msg) {
@@ -173,4 +159,5 @@ public class DefaultProposer implements Proposer {
             cluster.broadcast(new LearnRQ(currentId, instance.getAcceptData()));
         }
     }
+
 }

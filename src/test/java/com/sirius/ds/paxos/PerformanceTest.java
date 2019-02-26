@@ -23,7 +23,7 @@ public class PerformanceTest extends SimpleProposalTest {
 
     @Test
     public void batchWithoutWaitLearn() throws InterruptedException {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             batch();
         }
     }

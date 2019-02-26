@@ -11,50 +11,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class DefaultLearner implements Learner {
+public class DefaultLearner extends DefaultWorker implements Learner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLearner.class);
 
     public DefaultLearner(PaxosCluster cluster) {
+        super(cluster.getCurrent().getID().nodeId, "learner", 8);
         this.cluster = cluster;
+        this.start();
 
-        Executors.newFixedThreadPool(4).execute(() -> {
-            boolean flag = true;
-            while (flag) {
-                try {
-                    PaxosMessage message = queue.poll(10, TimeUnit.MILLISECONDS);
-                    if (message instanceof LearnRQ) {
-                        process((LearnRQ) message);
-                    } else if (message instanceof LearnRS) {
-                        process((LearnRS) message);
-                    }
-                } catch (InterruptedException e) {
-                    LOGGER.error("learner process termination with error", e);
-                    flag = false;
-                }
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
     private PaxosCluster cluster;
-    private BlockingQueue<PaxosMessage> queue = new LinkedBlockingQueue<>();
     private Map<Long, Consumer<LearnRS>> watchers = new ConcurrentHashMap<>();
 
     @Override
     public void onMessage(LearnRQ msg) {
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
     }
 
     @Override
     public void onMessage(LearnRS msg) {
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
     }
 
     @Override
@@ -65,6 +47,20 @@ public class DefaultLearner implements Learner {
     @Override
     public void deRegisterLearningWatcher(long instanceId) {
         watchers.remove(instanceId);
+    }
+
+    @Override
+    protected PaxosCluster getPaxosCluster() {
+        return this.cluster;
+    }
+
+    @Override
+    protected void process(PaxosMessage message) {
+        if (message instanceof LearnRQ) {
+            process((LearnRQ) message);
+        } else if (message instanceof LearnRS) {
+            process((LearnRS) message);
+        }
     }
 
     private void process(LearnRQ msg) {
@@ -88,4 +84,5 @@ public class DefaultLearner implements Learner {
             });
         }
     }
+
 }

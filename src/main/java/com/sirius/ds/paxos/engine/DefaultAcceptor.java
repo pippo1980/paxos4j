@@ -12,49 +12,41 @@ import com.sirius.ds.paxos.stat.InstanceStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-public class DefaultAcceptor implements Acceptor {
+public class DefaultAcceptor extends DefaultWorker implements Acceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAcceptor.class);
 
     public DefaultAcceptor(PaxosCluster cluster) {
+        super(cluster.getCurrent().getID().nodeId, "acceptor", 8);
         this.cluster = cluster;
-
-        Executors.newFixedThreadPool(4).execute(() -> {
-            boolean flag =true;
-            while (flag) {
-                try {
-                    PaxosMessage message = queue.poll(10, TimeUnit.MILLISECONDS);
-                    if (message instanceof PrepareRQ) {
-                        process((PrepareRQ) message);
-                    } else if (message instanceof AcceptRQ) {
-                        process((AcceptRQ) message);
-                    }
-                } catch (InterruptedException e) {
-                    flag=false;
-                    LOGGER.error("acceptor process termination with error", e);
-                }
-            }
-        });
+        this.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
     private PaxosCluster cluster;
-    private BlockingQueue<PaxosMessage> queue = new LinkedBlockingQueue<>();
+
+    @Override
+    protected PaxosCluster getPaxosCluster() {
+        return this.cluster;
+    }
 
     @Override
     public void onMessage(PrepareRQ msg) {
-        // process(msg);
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
     }
 
     @Override
     public void onMessage(AcceptRQ msg) {
-        // process(msg);
-        queue.offer(msg);
+        onMessage((PaxosMessage) msg);
+    }
+
+    @Override
+    protected void process(PaxosMessage message) {
+        if (message instanceof PrepareRQ) {
+            process((PrepareRQ) message);
+        } else if (message instanceof AcceptRQ) {
+            process((AcceptRQ) message);
+        }
     }
 
     private void process(PrepareRQ msg) {
