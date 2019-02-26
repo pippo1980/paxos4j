@@ -116,7 +116,7 @@ public class MemoryPaxosCluster extends BasePaxosCluster {
 
     @Override
     public void send(PeerID target, LearnRQ msg) {
-        LOGGER.debug("send learn rs from node:{} to node:{}, the msg is:{}", current.getID(), target, msg);
+        LOGGER.debug("send learn rq from node:{} to node:{}, the msg is:{}", current.getID(), target, msg);
         try {
             nodes.get(target).getLearner().onMessage(msg);
         } catch (Exception e) {

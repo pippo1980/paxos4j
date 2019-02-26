@@ -65,12 +65,13 @@ public class InstanceStatMachine extends Instance {
                 return;
             }
 
+            if (msg.getAcceptBallot() > acceptBallot && msg.getAcceptData() != null) {
+                acceptBallot = msg.getAcceptBallot();
+                acceptData = msg.getAcceptData();
+            }
+
             if (msg.isPrepareOK()) {
                 prepared.add(msg.getPeerID());
-                if (msg.getAcceptBallot() > acceptBallot && msg.getAcceptData() != null) {
-                    acceptBallot = msg.getAcceptBallot();
-                    acceptData = msg.getAcceptData();
-                }
             }
 
             callback.accept(this);

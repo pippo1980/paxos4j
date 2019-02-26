@@ -8,6 +8,11 @@ paxos implement with java
 * InstanceWAL
 * DataStorage
 
+### the paxos working theory
+
+### the instance stat machine
+![](https://github.com/pippo1980/paxos4j/blob/master/doc/statmachine.png)
+
 ## Generate an instanceId using the snowflake allocation id algorithm
 When the currency raises values ​​on different working nodes to avoid the central node, the snowflake algorithm is used to generate instanceId on the working node.
 ![](https://github.com/pippo1980/paxos4j/blob/master/doc/snowflake.png)
